@@ -21,7 +21,8 @@ Vagrant.configure(2) do |config|
 	config.vm.box = "bento/ubuntu-18.04"
 	config.vm.network "private_network", type: "dhcp"
 	config.vm.hostname = 'vagrant-test'
-#	config.vm.synced_folder ".", "/vagrant", type: "rsync"
+	config.puppet_install.puppet_version = '5.5.16'
+
 
 	#Prefer Virtualbox unless other provider specifically chosen.
 	config.vm.provider  customParameter
@@ -41,12 +42,6 @@ Vagrant.configure(2) do |config|
 
 	end
 	
-	config.vm.provision "shell", inline: <<-SHELL
-		wget https://apt.puppetlabs.com/puppet5-release-$(lsb_release -cs).deb
-		dpkg -i puppet5-release-$(lsb_release -cs).deb
-		apt-get -qq update
-		apt-get install -y puppet-agent
-	SHELL
 
 	config.vm.provision :puppet do |puppet|
 		puppet.manifests_path = "environments/test/manifests"
