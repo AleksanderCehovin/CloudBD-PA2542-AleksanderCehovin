@@ -1,0 +1,72 @@
+require 'getoptlong'
+
+opts = GetoptLong.new(
+  [ '--local', GetoptLong::OPTIONAL_ARGUMENT ]
+)
+
+customParameter='digital_ocean'
+
+opts.ordering=(GetoptLong::REQUIRE_ORDER)   ### this line.
+
+opts.each do |opt, arg|
+  case opt
+    when '--local'
+      customParameter='virtualbox'
+    else
+      customParameter='digital_ocean'
+  end
+end
+
+Vagrant.configure(2) do |config|
+	config.vm.box = "bento/ubuntu-18.04"
+	config.vm.network "private_network", type: "dhcp"
+	config.vm.hostname = 'vagrant-test'
+#	config.vm.synced_folder ".", "/vagrant", type: "rsync"
+
+	#Prefer Virtualbox unless other provider specifically chosen.
+	config.vm.provider  customParameter
+
+	config.vm.provider :digital_ocean do |provider, override|
+#		override.ssh.private_key_path = 'C:/Users/ondak_000/.ssh/digitalocean'
+		override.ssh.private_key_path = '/home/alce/.ssh/digitalocean'
+		override.vm.box = 'digital_ocean'
+		override.vm.box_url = "https://github.com/devopsgroup-io/vagrant-digitalocean/raw/master/box/digital_ocean.box"
+		override.nfs.functional = false
+
+		provider.token = ENV['DIGOCEANTOKEN']
+		provider.image = 'ubuntu-14-04-x64'
+		provider.region = 'nyc1'
+		provider.size = '512mb'
+		provider.setup = false
+
+	end
+	
+	config.vm.provision "shell", inline: <<-SHELL
+		wget https://apt.puppetlabs.com/puppet5-release-$(lsb_release -cs).deb
+		dpkg -i puppet5-release-$(lsb_release -cs).deb
+		apt-get -qq update
+		apt-get install -y puppet-agent
+	SHELL
+
+	config.vm.provision :puppet do |puppet|
+		puppet.manifests_path = "environments/test/manifests"
+		puppet.manifest_file = "default.pp"
+		puppet.module_path = "environments/test/modules"
+	end
+
+	config.vm.define "appserver" do |appserver|
+		appserver.vm.hostname='appserver'
+		appserver.trigger.after :up do |trigger|
+			trigger.warn = "Appserver is up!"
+		end		
+	end
+	
+	config.vm.define "dbserver" do |dbserver|
+		dbserver.vm.hostname='dbserver'	
+		dbserver.trigger.after :up do |trigger|
+			trigger.warn = "DBserver is up!"
+		end				
+	end
+	
+
+end
