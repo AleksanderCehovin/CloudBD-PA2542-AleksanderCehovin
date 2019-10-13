@@ -6,9 +6,6 @@ exec { 'update':
 	command => 'apt-get update > /tmp/aptupdate.output.txt',
 }
 
-#Database password
-$mysql_password = "1337"
-
 node default {
 
 }
@@ -28,8 +25,8 @@ node 'appserver' {
 	}	
 }
 
-#The password set part does not work, since mysql uses an authentication plugin that does not care about passwords.
-#Keeping this part anyway for future reference.
+#This part used to have a part that set a passworkd, but it did not work, since mysql uses an authentication plugin that 
+#does not care about passwords. Relying on sudo for accessing database information seems to be a better solution anyway.
 node 'dbserver' {
 	package{'mysql-server':
 		ensure=>installed,
